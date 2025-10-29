@@ -8,12 +8,17 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
+    const imageUrl =
+        product.images && product.images.length > 0
+            ? `${product.images[0].filePath}`
+            : null;
+
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition h-full flex flex-col">
             <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                {product.images && product.images.length > 0 ? (
+                {imageUrl ? (
                     <img
-                        src={product.images[0].filePath}
+                        src={imageUrl}
                         alt={product.title}
                         className="w-full h-full object-cover"
                     />

@@ -26,8 +26,23 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             setCurrentPage("login");
             return;
         }
+
+        if (
+            !shippingData.city ||
+            !shippingData.street ||
+            !shippingData.dateOfDelivery
+        ) {
+            alert("Please fill in all shipping information");
+            return;
+        }
+
         onCheckout(shippingData);
         setShowCheckout(false);
+        setShippingData({
+            city: "",
+            street: "",
+            dateOfDelivery: "",
+        });
     };
 
     return (
@@ -66,6 +81,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                             })
                         }
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
                     />
                     <input
                         type="text"
@@ -78,6 +94,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                             })
                         }
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
                     />
                     <input
                         type="date"
@@ -89,6 +106,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                             })
                         }
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
+                        min={new Date().toISOString().split("T")[0]}
                     />
                     <div className="flex gap-4">
                         <button

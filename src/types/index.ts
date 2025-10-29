@@ -1,6 +1,7 @@
 export interface Category {
     id: string;
     title: string;
+    products?: Product[];
 }
 
 export interface Image {
@@ -11,7 +12,9 @@ export interface Image {
     mimeType: string;
     originalName: string;
     logo: boolean;
-    productId?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    productId?: string | null;
 }
 
 export interface Product {
@@ -21,22 +24,25 @@ export interface Product {
     price: number;
     size: string;
     categoryId: string;
-    images: Image[];
+    images?: Image[];
 }
 
 export interface User {
     id: string;
-    firstName: string;
-    secondName: string;
+    firstName?: string;
+    secondName?: string;
     phoneNumber: string;
-    isVerified: boolean;
 }
 
 export interface BasketItem {
     id: string;
-    productId: string;
-    product: Product;
     quantity: number;
+    product: Product;
+}
+
+export interface Basket {
+    id: string;
+    basketItems: BasketItem[];
 }
 
 export interface ShippingData {
@@ -45,27 +51,41 @@ export interface ShippingData {
     dateOfDelivery: string;
 }
 
+export interface OrderItem {
+    id: string;
+    quantity: string;
+    product: Product;
+}
+
 export interface Order {
     id: string;
     totalPrice: number;
-    userId: string;
     status: "PROCESSING" | "CANCELLED" | "COMPLETED";
-    createdAt: string;
     orderItems: OrderItem[];
-    shipping?: ShippingData;
-}
-
-export interface OrderItem {
-    id: string;
-    orderId: string;
-    productId: string;
-    product: Product;
-    quantity: number;
+    shipping: ShippingData;
 }
 
 export interface RegisterData {
-    firstName: string;
-    secondName: string;
     phoneNumber: string;
     password: string;
+}
+
+export interface LoginResponse {
+    id: string;
+    phoneNumber: string;
+    firstName?: string;
+    secondName?: string;
+    accessToken: string;
+    refreshToken: string;
+}
+
+export interface ApiResponse<T> {
+    data: T;
+    message?: string;
+}
+
+export interface PageQuery {
+    page?: number;
+    take?: number;
+    q?: string;
 }

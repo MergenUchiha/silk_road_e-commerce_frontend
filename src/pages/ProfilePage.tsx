@@ -9,15 +9,14 @@ interface ProfilePageProps {
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
-        firstName: user.firstName,
-        secondName: user.secondName,
+        firstName: user.firstName || "",
+        secondName: user.secondName || "",
         phoneNumber: user.phoneNumber,
     });
 
     const handleSave = () => {
         updateProfile(formData);
         setIsEditing(false);
-        alert("Profile updated successfully! (demo)");
     };
 
     return (
@@ -37,23 +36,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                     <div className="space-y-6">
                         <div>
                             <label className="text-gray-600 text-sm font-medium">
-                                First Name
-                            </label>
-                            <p className="text-xl font-bold mt-1">
-                                {user.firstName}
-                            </p>
-                        </div>
-                        <div>
-                            <label className="text-gray-600 text-sm font-medium">
-                                Last Name
-                            </label>
-                            <p className="text-xl font-bold mt-1">
-                                {user.secondName}
-                            </p>
-                        </div>
-                        <div>
-                            <label className="text-gray-600 text-sm font-medium">
-                                Phone
+                                Phone Number
                             </label>
                             <p className="text-xl font-bold mt-1">
                                 {user.phoneNumber}
@@ -61,23 +44,37 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                         </div>
                         <div>
                             <label className="text-gray-600 text-sm font-medium">
-                                Account Status
+                                First Name
                             </label>
                             <p className="text-xl font-bold mt-1">
-                                {user.isVerified ? (
-                                    <span className="text-green-600">
-                                        ✓ Verified
-                                    </span>
-                                ) : (
-                                    <span className="text-yellow-600">
-                                        ⚠ Not Verified
-                                    </span>
-                                )}
+                                {user.firstName || "Not set"}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="text-gray-600 text-sm font-medium">
+                                Last Name
+                            </label>
+                            <p className="text-xl font-bold mt-1">
+                                {user.secondName || "Not set"}
                             </p>
                         </div>
                     </div>
                 ) : (
                     <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number
+                            </label>
+                            <input
+                                type="tel"
+                                value={formData.phoneNumber}
+                                disabled
+                                className="w-full px-4 py-3 border rounded-lg bg-gray-100 cursor-not-allowed"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Phone number cannot be changed
+                            </p>
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 First Name
@@ -92,6 +89,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                                     })
                                 }
                                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Enter first name"
                             />
                         </div>
                         <div>
@@ -108,22 +106,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                                     })
                                 }
                                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Phone
-                            </label>
-                            <input
-                                type="tel"
-                                value={formData.phoneNumber}
-                                onChange={(e) =>
-                                    setFormData({
-                                        ...formData,
-                                        phoneNumber: e.target.value,
-                                    })
-                                }
-                                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Enter last name"
                             />
                         </div>
                         <button

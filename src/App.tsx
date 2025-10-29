@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import HomePage from "./pages/HomePage";
@@ -8,7 +8,7 @@ import CartPage from "./pages/CartPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
-import { mockCategories, mockProducts, mockUser } from "./utils/mockData";
+import VerificationPage from "./pages/VerificationPage";
 import {
     Category,
     Product,
@@ -17,103 +17,252 @@ import {
     ShippingData,
     RegisterData,
 } from "./types";
+import * as api from "./services/api";
 
 function App() {
     const [currentPage, setCurrentPage] = useState<string>("home");
-    const [categories] = useState<Category[]>(mockCategories);
-    const [products] = useState<Product[]>(mockProducts);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [productsCount, setProductsCount] = useState<number>(0);
     const [basket, setBasket] = useState<BasketItem[]>([]);
-    const [user, setUser] = useState<User | null>(null); // Change to mockUser to test logged-in state
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [pendingVerificationUserId, setPendingVerificationUserId] = useState<
+        string | null
+    >(null);
 
-    // Authentication handlers
-    const handleLogin = (phoneNumber: string, password: string) => {
-        // Mock login - replace with API call
-        setUser(mockUser);
-        setCurrentPage("home");
-        alert("Login successful! (demo)");
+    // Загрузка сохраненной страницы при монтировании
+    useEffect(() => {
+        const savedPage = localStorage.getItem("currentPage");
+        if (savedPage) {
+            setCurrentPage(savedPage);
+        }
+        loadInitialData();
+    }, []);
+
+    // Функция для навигации с сохранением в localStorage
+    const navigateToPage = (page: string) => {
+        setCurrentPage(page);
+        localStorage.setItem("currentPage", page);
     };
 
-    const handleRegister = (userData: RegisterData) => {
-        // Mock register - replace with API call
-        setUser({ ...mockUser, ...userData });
-        setCurrentPage("home");
-        alert("Registration successful! (demo)");
+    const loadInitialData = async () => {
+        try {
+            setLoading(true);
+
+            const [categoriesData, productsData] = await Promise.all([
+                api.getCategories(),
+                api.getProducts({ page: 1, take: 10 }),
+            ]);
+
+            console.log("Categories loaded:", categoriesData);
+            console.log("Products loaded:", productsData);
+
+            setCategories(categoriesData);
+            setProducts(productsData.products);
+            setProductsCount(productsData.count);
+
+            const token = localStorage.getItem("accessToken");
+            if (token) {
+                try {
+                    const userData = await api.getMe();
+                    console.log("User data:", userData);
+                    setUser(userData);
+                    await loadBasket();
+                } catch (error) {
+                    console.error("Failed to get user:", error);
+                    localStorage.removeItem("accessToken");
+                    localStorage.removeItem("refreshToken");
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load initial data:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleLogout = () => {
-        setUser(null);
-        setBasket([]);
-        setCurrentPage("home");
+    // Функция для загрузки продуктов с определенной страницы
+    const loadProducts = async (
+        page: number,
+        take: number = 10,
+        categoryId?: string
+    ) => {
+        try {
+            const productsData = await api.getProducts({ page, take });
+            console.log(`Products loaded for page ${page}:`, productsData);
+            setProducts(productsData.products);
+            setProductsCount(productsData.count);
+        } catch (error) {
+            console.error("Failed to load products:", error);
+        }
     };
 
-    // Cart handlers
-    const addToBasket = (productId: string) => {
+    const loadBasket = async () => {
+        try {
+            const basketData = await api.getMyBasket();
+            console.log("Basket loaded:", basketData);
+            setBasket(basketData.basketItems || []);
+        } catch (error) {
+            console.error("Failed to load basket:", error);
+            setBasket([]);
+        }
+    };
+
+    const handleLogin = async (phoneNumber: string, password: string) => {
+        try {
+            const loginData = await api.login(phoneNumber, password);
+            console.log("Login response:", loginData);
+            setUser({
+                id: loginData.id,
+                phoneNumber: loginData.phoneNumber,
+                firstName: loginData.firstName,
+                secondName: loginData.secondName,
+            });
+            await loadBasket();
+            navigateToPage("home");
+        } catch (error: any) {
+            console.error("Login error:", error);
+            alert(error.message || "Login failed");
+        }
+    };
+
+    const handleRegister = async (
+        userData: RegisterData & { firstName: string; secondName: string }
+    ) => {
+        try {
+            const result = await api.register(userData);
+            console.log("Registration result:", result);
+            setPendingVerificationUserId(result.userId);
+            navigateToPage("verification");
+        } catch (error: any) {
+            console.error("Registration error:", error);
+            alert(error.message || "Registration failed");
+        }
+    };
+
+    const handleVerification = async (code: string) => {
+        if (!pendingVerificationUserId) return;
+
+        try {
+            await api.verifyUser(pendingVerificationUserId, code);
+            alert("Account verified successfully! Please login.");
+            setPendingVerificationUserId(null);
+            navigateToPage("login");
+        } catch (error: any) {
+            console.error("Verification error:", error);
+            alert(error.message || "Verification failed");
+        }
+    };
+
+    const handleResendCode = async () => {
+        if (!pendingVerificationUserId) return;
+
+        try {
+            await api.resendVerificationCode(pendingVerificationUserId);
+            alert("Verification code resent!");
+        } catch (error: any) {
+            console.error("Resend code error:", error);
+            alert(error.message || "Failed to resend code");
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+            setUser(null);
+            setBasket([]);
+            localStorage.removeItem("currentPage");
+            navigateToPage("home");
+        } catch (error) {
+            console.error("Logout failed:", error);
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("currentPage");
+            setUser(null);
+            setBasket([]);
+            navigateToPage("home");
+        }
+    };
+
+    const addToBasket = async (productId: string) => {
         if (!user) {
-            setCurrentPage("login");
+            navigateToPage("login");
             return;
         }
 
-        const product = products.find((p) => p.id === productId);
-        if (!product) return;
-
-        const existingItem = basket.find(
-            (item) => item.productId === productId
-        );
-
-        if (existingItem) {
-            setBasket(
-                basket.map((item) =>
-                    item.productId === productId
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                )
-            );
-        } else {
-            setBasket([
-                ...basket,
-                {
-                    id: `basket-${Date.now()}`,
-                    productId,
-                    product,
-                    quantity: 1,
-                },
-            ]);
+        try {
+            const basketData = await api.addToBasket(productId, 1);
+            console.log("Basket after adding:", basketData);
+            setBasket(basketData.basketItems || []);
+        } catch (error: any) {
+            console.error("Add to basket error:", error);
+            alert(error.message || "Failed to add to basket");
         }
     };
 
-    const updateQuantity = (itemId: string, quantity: number) => {
+    const updateQuantity = async (itemId: string, quantity: number) => {
         if (quantity < 1) return;
-        setBasket(
-            basket.map((item) =>
-                item.id === itemId ? { ...item, quantity } : item
-            )
-        );
-    };
 
-    const removeFromBasket = (itemId: string) => {
-        setBasket(basket.filter((item) => item.id !== itemId));
-    };
-
-    const handleCheckout = (shippingData: ShippingData) => {
-        // Mock checkout - replace with API call
-        console.log("Order placed:", { basket, shippingData });
-        alert("Order placed successfully! (demo)");
-        setBasket([]);
-        setCurrentPage("home");
-    };
-
-    // Profile handler
-    const updateProfile = (updatedData: Partial<User>) => {
-        if (user) {
-            setUser({ ...user, ...updatedData });
+        try {
+            const basketData = await api.updateBasketItem(itemId, quantity);
+            console.log("Basket after update:", basketData);
+            setBasket(basketData.basketItems || []);
+        } catch (error: any) {
+            console.error("Update quantity error:", error);
+            alert(error.message || "Failed to update quantity");
         }
     };
+
+    const removeFromBasket = async (itemId: string) => {
+        try {
+            await api.removeBasketItem(itemId);
+            setBasket(basket.filter((item) => item.id !== itemId));
+        } catch (error: any) {
+            console.error("Remove from basket error:", error);
+            alert(error.message || "Failed to remove item");
+        }
+    };
+
+    const handleCheckout = async (shippingData: ShippingData) => {
+        try {
+            await api.createOrder(shippingData);
+            setBasket([]);
+            navigateToPage("home");
+            alert("Order placed successfully!");
+        } catch (error: any) {
+            console.error("Checkout error:", error);
+            alert(error.message || "Failed to place order");
+        }
+    };
+
+    const updateProfile = async (updatedData: Partial<User>) => {
+        try {
+            const updatedUser = await api.updateProfile(updatedData);
+            console.log("Profile updated:", updatedUser);
+            setUser(updatedUser);
+            alert("Profile updated successfully!");
+        } catch (error: any) {
+            console.error("Update profile error:", error);
+            alert(error.message || "Failed to update profile");
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-2xl font-bold text-indigo-600">
+                    Loading...
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar
                 currentPage={currentPage}
-                setCurrentPage={setCurrentPage}
+                setCurrentPage={navigateToPage}
                 user={user}
                 basketCount={basket.length}
                 onLogout={handleLogout}
@@ -121,14 +270,16 @@ function App() {
 
             <main className="flex-1">
                 {currentPage === "home" && (
-                    <HomePage setCurrentPage={setCurrentPage} />
+                    <HomePage setCurrentPage={navigateToPage} />
                 )}
 
                 {currentPage === "products" && (
                     <ProductsPage
                         categories={categories}
                         products={products}
+                        totalCount={productsCount}
                         onAddToCart={addToBasket}
+                        onLoadProducts={loadProducts}
                     />
                 )}
 
@@ -140,7 +291,7 @@ function App() {
                         updateQuantity={updateQuantity}
                         removeFromBasket={removeFromBasket}
                         user={user}
-                        setCurrentPage={setCurrentPage}
+                        setCurrentPage={navigateToPage}
                         onCheckout={handleCheckout}
                     />
                 )}
@@ -148,23 +299,32 @@ function App() {
                 {currentPage === "login" && (
                     <LoginPage
                         handleLogin={handleLogin}
-                        setCurrentPage={setCurrentPage}
+                        setCurrentPage={navigateToPage}
                     />
                 )}
 
                 {currentPage === "register" && (
                     <RegisterPage
                         handleRegister={handleRegister}
-                        setCurrentPage={setCurrentPage}
+                        setCurrentPage={navigateToPage}
                     />
                 )}
+
+                {currentPage === "verification" &&
+                    pendingVerificationUserId && (
+                        <VerificationPage
+                            userId={pendingVerificationUserId}
+                            onVerified={handleVerification}
+                            onResendCode={handleResendCode}
+                        />
+                    )}
 
                 {currentPage === "profile" && user && (
                     <ProfilePage user={user} updateProfile={updateProfile} />
                 )}
             </main>
 
-            <Footer setCurrentPage={setCurrentPage} />
+            <Footer setCurrentPage={navigateToPage} />
         </div>
     );
 }

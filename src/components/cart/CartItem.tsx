@@ -13,6 +13,26 @@ const CartItem: React.FC<CartItemProps> = ({
     onUpdateQuantity,
     onRemove,
 }) => {
+    const handleDecrement = () => {
+        if (item.quantity > 1) {
+            onUpdateQuantity(item.id, item.quantity - 1);
+        }
+    };
+
+    const handleIncrement = () => {
+        onUpdateQuantity(item.id, item.quantity + 1);
+    };
+
+    const handleRemove = () => {
+        if (
+            window.confirm(
+                "Are you sure you want to remove this item from cart?"
+            )
+        ) {
+            onRemove(item.id);
+        }
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-md p-4 flex items-center gap-4">
             <div className="w-20 h-20 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex-shrink-0 flex items-center justify-center">
@@ -26,18 +46,20 @@ const CartItem: React.FC<CartItemProps> = ({
                     <Package size={32} className="text-gray-400" />
                 )}
             </div>
-
             <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-lg mb-1">{item.product.title}</h3>
+                <h3 className="font-bold text-lg mb-1 truncate">
+                    {item.product.title}
+                </h3>
                 <p className="text-gray-600">
                     ${item.product.price.toLocaleString()}
                 </p>
             </div>
-
             <div className="flex items-center gap-2">
                 <button
-                    onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                    className="p-2 border rounded-lg hover:bg-gray-100 transition"
+                    onClick={handleDecrement}
+                    className="p-2 border rounded-lg hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={item.quantity <= 1}
+                    aria-label="Decrease quantity"
                 >
                     <Minus size={16} />
                 </button>
@@ -45,20 +67,20 @@ const CartItem: React.FC<CartItemProps> = ({
                     {item.quantity}
                 </span>
                 <button
-                    onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                    onClick={handleIncrement}
                     className="p-2 border rounded-lg hover:bg-gray-100 transition"
+                    aria-label="Increase quantity"
                 >
                     <Plus size={16} />
                 </button>
             </div>
-
             <div className="font-bold text-lg w-28 text-right">
                 ${(item.product.price * item.quantity).toLocaleString()}
             </div>
-
             <button
-                onClick={() => onRemove(item.id)}
+                onClick={handleRemove}
                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                aria-label="Remove item"
             >
                 <Trash2 size={20} />
             </button>

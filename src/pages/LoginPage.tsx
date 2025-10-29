@@ -14,6 +14,16 @@ const LoginPage: React.FC<LoginPageProps> = ({
 
     const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate phone number format
+        const phoneRegex = /^\+[1-9]\d{1,14}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            alert(
+                "Phone number must be in international format (e.g., +12025550123)"
+            );
+            return;
+        }
+
         handleLogin(phoneNumber, password);
     };
 
@@ -28,12 +38,15 @@ const LoginPage: React.FC<LoginPageProps> = ({
                         </label>
                         <input
                             type="tel"
-                            placeholder="+1 (555) 123-4567"
+                            placeholder="+12025550123"
                             value={phoneNumber}
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             required
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Use international format (e.g., +12025550123)
+                        </p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
