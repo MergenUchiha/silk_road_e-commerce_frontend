@@ -17,16 +17,6 @@ export interface Image {
     productId?: string | null;
 }
 
-export interface Product {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    size: string;
-    categoryId: string;
-    images?: Image[];
-}
-
 export interface User {
     id: string;
     firstName?: string;
@@ -88,4 +78,28 @@ export interface PageQuery {
     page?: number;
     take?: number;
     q?: string;
+}
+
+export interface Review {
+    id: string;
+    comment: string;
+    rating: number;
+    user: User;
+}
+
+export interface Product {
+    id: string;
+    title: string;
+    description: string;
+    size: string;
+    price: number;
+    categoryId: string;
+    images?: Image[];
+    reviews?: Review[];
+}
+
+export interface CreateReviewData {
+    productId: string;
+    comment: string;
+    rating: number;
 }

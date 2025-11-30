@@ -12,13 +12,24 @@ import {
 
 const API_URL = "http://localhost:5005/api";
 
-// Helper function to get auth headers
+// Helper function to get auth headers (with Content-Type)
 const getAuthHeaders = (): HeadersInit => {
     const token = localStorage.getItem("accessToken");
     return {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
     };
+};
+
+// Helper function to get auth headers WITHOUT Content-Type (for DELETE/GET)
+const getAuthHeadersWithoutContentType = (): HeadersInit => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+        return {
+            Authorization: `Bearer ${token}`,
+        };
+    }
+    return {};
 };
 
 // Helper function to handle API responses
@@ -119,9 +130,7 @@ export const login = async (
 export const logout = async (): Promise<void> => {
     await fetch(`${API_URL}/client/auth/logout`, {
         method: "POST",
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
+        headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
 
@@ -132,7 +141,7 @@ export const logout = async (): Promise<void> => {
 export const getMe = async (): Promise<User> => {
     const response = await fetch(`${API_URL}/client/auth/me`, {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
     const data: any = await handleResponse(response);
@@ -257,7 +266,7 @@ export const getProduct = async (productId: string): Promise<Product> => {
 export const getMyBasket = async (): Promise<Basket> => {
     const response = await fetch(`${API_URL}/basket/my`, {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
     const data: any = await handleResponse(response);
@@ -292,22 +301,24 @@ export const updateBasketItem = async (
     return data.response || data;
 };
 
+// ✅ ИСПРАВЛЕНО: убран Content-Type для DELETE запроса
 export const removeBasketItem = async (
     basketItemId: string
 ): Promise<boolean> => {
     const response = await fetch(`${API_URL}/basket/${basketItemId}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
+        headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
     await handleResponse<any>(response);
     return true;
 };
 
+// ✅ ИСПРАВЛЕНО: убран Content-Type для DELETE запроса
 export const clearBasket = async (): Promise<boolean> => {
     const response = await fetch(`${API_URL}/basket`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
+        headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
     await handleResponse<any>(response);
@@ -332,7 +343,7 @@ export const getMyOrders = async (): Promise<Order[]> => {
     try {
         const response = await fetch(`${API_URL}/order/my`, {
             method: "GET",
-            headers: getAuthHeaders(),
+            headers: getAuthHeadersWithoutContentType(),
             credentials: "include",
         });
         const data: any = await handleResponse(response);
@@ -352,9 +363,36 @@ export const getMyOrders = async (): Promise<Order[]> => {
 export const getOrder = async (orderId: string): Promise<Order> => {
     const response = await fetch(`${API_URL}/order/${orderId}`, {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
     const data: any = await handleResponse(response);
     return data.response || data;
+};
+
+// Reviews
+export const createReview = async (
+    productId: string,
+    comment: string,
+    rating: number
+): Promise<boolean> => {
+    const response = await fetch(`${API_URL}/review`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ productId, comment, rating }),
+    });
+    await handleResponse<any>(response);
+    return true;
+};
+
+// ✅ ИСПРАВЛЕНО: убран Content-Type для DELETE запроса
+export const deleteReview = async (reviewId: string): Promise<boolean> => {
+    const response = await fetch(`${API_URL}/review/${reviewId}`, {
+        method: "DELETE",
+        headers: getAuthHeadersWithoutContentType(),
+        credentials: "include",
+    });
+    await handleResponse<any>(response);
+    return true;
 };

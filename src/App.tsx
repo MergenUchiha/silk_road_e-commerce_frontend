@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
 import VerificationPage from "./pages/VerificationPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import {
     Category,
     Product,
@@ -21,6 +22,9 @@ import * as api from "./services/api";
 
 function App() {
     const [currentPage, setCurrentPage] = useState<string>("home");
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(
+        null
+    );
     const [categories, setCategories] = useState<Category[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [productsCount, setProductsCount] = useState<number>(0);
@@ -31,7 +35,6 @@ function App() {
         string | null
     >(null);
 
-    // Загрузка сохраненной страницы при монтировании
     useEffect(() => {
         const savedPage = localStorage.getItem("currentPage");
         if (savedPage) {
@@ -40,10 +43,12 @@ function App() {
         loadInitialData();
     }, []);
 
-    // Функция для навигации с сохранением в localStorage
-    const navigateToPage = (page: string) => {
+    const navigateToPage = (page: string, productId?: string) => {
         setCurrentPage(page);
         localStorage.setItem("currentPage", page);
+        if (productId) {
+            setSelectedProductId(productId);
+        }
     };
 
     const loadInitialData = async () => {
@@ -52,7 +57,7 @@ function App() {
 
             const [categoriesData, productsData] = await Promise.all([
                 api.getCategories(),
-                api.getProducts({ page: 1, take: 10 }),
+                api.getProducts({ page: 1, take: 15 }),
             ]);
 
             console.log("Categories loaded:", categoriesData);
@@ -82,10 +87,9 @@ function App() {
         }
     };
 
-    // Функция для загрузки продуктов с определенной страницы
     const loadProducts = async (
         page: number,
-        take: number = 10,
+        take: number = 15,
         categoryId?: string
     ) => {
         try {
@@ -185,16 +189,17 @@ function App() {
         }
     };
 
-    const addToBasket = async (productId: string) => {
+    const addToBasket = async (productId: string, quantity: number = 1) => {
         if (!user) {
             navigateToPage("login");
             return;
         }
 
         try {
-            const basketData = await api.addToBasket(productId, 1);
+            const basketData = await api.addToBasket(productId, quantity);
             console.log("Basket after adding:", basketData);
             setBasket(basketData.basketItems || []);
+            alert(`${quantity} item(s) added to cart!`);
         } catch (error: any) {
             console.error("Add to basket error:", error);
             alert(error.message || "Failed to add to basket");
@@ -248,6 +253,11 @@ function App() {
         }
     };
 
+    const handleViewProduct = (productId: string) => {
+        console.log("Viewing product:", productId);
+        navigateToPage("product-detail", productId);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -280,6 +290,16 @@ function App() {
                         totalCount={productsCount}
                         onAddToCart={addToBasket}
                         onLoadProducts={loadProducts}
+                        onViewProduct={handleViewProduct}
+                    />
+                )}
+
+                {currentPage === "product-detail" && selectedProductId && (
+                    <ProductDetailPage
+                        productId={selectedProductId}
+                        user={user}
+                        setCurrentPage={navigateToPage}
+                        onAddToCart={addToBasket}
                     />
                 )}
 
