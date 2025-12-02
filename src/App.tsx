@@ -10,6 +10,8 @@ import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
 import VerificationPage from "./pages/VerificationPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import OrdersPage from "./pages/OrdersPage";
+
 import {
     Category,
     Product,
@@ -338,6 +340,10 @@ function App() {
                             onResendCode={handleResendCode}
                         />
                     )}
+
+                {currentPage === "orders" && (
+                    <OrdersPage setCurrentPage={navigateToPage} />
+                )}
 
                 {currentPage === "profile" && user && (
                     <ProfilePage user={user} updateProfile={updateProfile} />

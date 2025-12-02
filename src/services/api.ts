@@ -207,7 +207,7 @@ export const getCategory = async (categoryId: string): Promise<Category> => {
     return data.response || data;
 };
 
-// Products - ИСПРАВЛЕНО для работы с count
+// Products
 export const getProducts = async (
     query?: PageQuery
 ): Promise<{ products: Product[]; count: number }> => {
@@ -225,7 +225,6 @@ export const getProducts = async (
 
         console.log("Products API response:", data);
 
-        // Бэкенд возвращает { good: true, response: [...], count: number }
         if (data && data.response && Array.isArray(data.response)) {
             return {
                 products: data.response,
@@ -233,7 +232,6 @@ export const getProducts = async (
             };
         }
 
-        // Если бэкенд вернул просто массив (на всякий случай)
         if (Array.isArray(data)) {
             console.warn("Backend returned array instead of object with count");
             return {
@@ -301,7 +299,6 @@ export const updateBasketItem = async (
     return data.response || data;
 };
 
-// ✅ ИСПРАВЛЕНО: убран Content-Type для DELETE запроса
 export const removeBasketItem = async (
     basketItemId: string
 ): Promise<boolean> => {
@@ -314,7 +311,6 @@ export const removeBasketItem = async (
     return true;
 };
 
-// ✅ ИСПРАВЛЕНО: убран Content-Type для DELETE запроса
 export const clearBasket = async (): Promise<boolean> => {
     const response = await fetch(`${API_URL}/basket`, {
         method: "DELETE",
@@ -325,11 +321,11 @@ export const clearBasket = async (): Promise<boolean> => {
     return true;
 };
 
-// Orders
+// Orders - UPDATED TO MATCH BACKEND
 export const createOrder = async (
     shippingData: ShippingData
 ): Promise<Order> => {
-    const response = await fetch(`${API_URL}/order`, {
+    const response = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -341,7 +337,7 @@ export const createOrder = async (
 
 export const getMyOrders = async (): Promise<Order[]> => {
     try {
-        const response = await fetch(`${API_URL}/order/my`, {
+        const response = await fetch(`${API_URL}/orders/my`, {
             method: "GET",
             headers: getAuthHeadersWithoutContentType(),
             credentials: "include",
@@ -361,13 +357,37 @@ export const getMyOrders = async (): Promise<Order[]> => {
 };
 
 export const getOrder = async (orderId: string): Promise<Order> => {
-    const response = await fetch(`${API_URL}/order/${orderId}`, {
+    const response = await fetch(`${API_URL}/orders/${orderId}`, {
         method: "GET",
         headers: getAuthHeadersWithoutContentType(),
         credentials: "include",
     });
     const data: any = await handleResponse(response);
     return data.response || data;
+};
+
+export const updateOrderStatus = async (
+    orderId: string,
+    status: "PROCESSING" | "COMPLETED" | "CANCELLED"
+): Promise<Order> => {
+    const response = await fetch(`${API_URL}/orders/${orderId}`, {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ status }),
+    });
+    const data: any = await handleResponse(response);
+    return data.response || data;
+};
+
+export const cancelOrder = async (orderId: string): Promise<boolean> => {
+    const response = await fetch(`${API_URL}/orders/${orderId}`, {
+        method: "DELETE",
+        headers: getAuthHeadersWithoutContentType(),
+        credentials: "include",
+    });
+    await handleResponse<any>(response);
+    return true;
 };
 
 // Reviews
@@ -386,7 +406,6 @@ export const createReview = async (
     return true;
 };
 
-// ✅ ИСПРАВЛЕНО: убран Content-Type для DELETE запроса
 export const deleteReview = async (reviewId: string): Promise<boolean> => {
     const response = await fetch(`${API_URL}/review/${reviewId}`, {
         method: "DELETE",

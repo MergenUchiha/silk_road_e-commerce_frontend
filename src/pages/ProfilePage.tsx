@@ -146,6 +146,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                     )}
                 </div>
 
+                {/* Order History Section */}
+
                 {/* Security Section */}
                 <div className="mt-8 bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition">
                     <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">

@@ -1,5 +1,5 @@
 import React from "react";
-import { ShoppingCart, User, LogOut } from "lucide-react";
+import { ShoppingCart, User, LogOut, Package } from "lucide-react";
 import { User as UserType } from "../../types";
 
 interface NavbarProps {
@@ -61,6 +61,18 @@ const Navbar: React.FC<NavbarProps> = ({
                             >
                                 About
                             </button>
+                            {user && (
+                                <button
+                                    onClick={() => setCurrentPage("orders")}
+                                    className={`font-medium transition ${
+                                        currentPage === "orders"
+                                            ? "text-indigo-600"
+                                            : "text-gray-700 hover:text-indigo-600"
+                                    }`}
+                                >
+                                    Orders
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -92,6 +104,7 @@ const Navbar: React.FC<NavbarProps> = ({
                                 <button
                                     onClick={onLogout}
                                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                    title="Logout"
                                 >
                                     <LogOut size={20} />
                                 </button>
@@ -139,6 +152,18 @@ const Navbar: React.FC<NavbarProps> = ({
                     >
                         About
                     </button>
+                    {user && (
+                        <button
+                            onClick={() => setCurrentPage("orders")}
+                            className={`flex-1 py-2 text-sm font-medium ${
+                                currentPage === "orders"
+                                    ? "text-indigo-600"
+                                    : "text-gray-700"
+                            }`}
+                        >
+                            Orders
+                        </button>
+                    )}
                 </div>
             </div>
         </nav>
