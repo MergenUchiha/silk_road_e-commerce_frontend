@@ -10,7 +10,7 @@ import {
     PageQuery,
 } from "../types";
 
-const API_URL = "http://localhost:5005/api";
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Helper function to get auth headers (with Content-Type)
 const getAuthHeaders = (): HeadersInit => {
