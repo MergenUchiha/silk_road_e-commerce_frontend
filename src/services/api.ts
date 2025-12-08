@@ -211,6 +211,7 @@ export const getCategory = async (categoryId: string): Promise<Category> => {
 export const getProducts = async (
     query?: PageQuery
 ): Promise<{ products: Product[]; count: number }> => {
+    console.log("start product getting");
     try {
         const params = new URLSearchParams();
         if (query?.page) params.append("page", query.page.toString());
