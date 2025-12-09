@@ -52,7 +52,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({
                             Verify Your Account
                         </h2>
                         <p className="text-gray-600">
-                            We've sent a 6-digit code to your phone
+                            We've sent a 6-digit code to your email
                         </p>
                     </div>
 
@@ -78,7 +78,7 @@ const VerificationPage: React.FC<VerificationPageProps> = ({
                                 pattern="\d{6}"
                             />
                             <p className="text-xs text-gray-500 mt-2 text-center">
-                                Enter the 6-digit code sent to your phone
+                                Enter the 6-digit code sent to your email
                             </p>
                         </div>
 

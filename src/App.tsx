@@ -115,13 +115,13 @@ function App() {
         }
     };
 
-    const handleLogin = async (phoneNumber: string, password: string) => {
+    const handleLogin = async (email: string, password: string) => {
         try {
-            const loginData = await api.login(phoneNumber, password);
+            const loginData = await api.login(email, password);
             console.log("Login response:", loginData);
             setUser({
                 id: loginData.id,
-                phoneNumber: loginData.phoneNumber,
+                email: loginData.email,
                 firstName: loginData.firstName,
                 secondName: loginData.secondName,
             });

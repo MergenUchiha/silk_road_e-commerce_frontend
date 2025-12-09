@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import {
     Package,
@@ -402,7 +403,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                                         <div>
                                             <div className="font-bold text-lg text-indigo-900">
                                                 {review.user.firstName ||
-                                                    review.user.phoneNumber}
+                                                    review.user.email}
                                             </div>
                                             {renderStars(review.rating)}
                                         </div>

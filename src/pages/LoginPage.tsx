@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Lock, Phone } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 
 interface LoginPageProps {
-    handleLogin: (phoneNumber: string, password: string) => void;
+    handleLogin: (email: string, password: string) => void;
     setCurrentPage: (page: string) => void;
 }
 
@@ -10,19 +10,17 @@ const LoginPage: React.FC<LoginPageProps> = ({
     handleLogin,
     setCurrentPage,
 }) => {
-    const [phoneNumber, setPhoneNumber] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const onSubmit = () => {
-        // Validate phone number format
-        const phoneRegex = /^\+[1-9]\d{1,14}$/;
-        if (!phoneRegex.test(phoneNumber)) {
-            alert(
-                "Phone number must be in international format (e.g., +12025550123)"
-            );
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert("Please enter a valid email address");
             return;
         }
-        handleLogin(phoneNumber, password);
+        handleLogin(email, password);
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -64,27 +62,22 @@ const LoginPage: React.FC<LoginPageProps> = ({
                     <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-indigo-700 mb-2 uppercase tracking-wide">
-                                Phone Number
+                                Email
                             </label>
                             <div className="relative">
                                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-500">
-                                    <Phone size={20} />
+                                    <Mail size={20} />
                                 </div>
                                 <input
-                                    type="tel"
-                                    placeholder="+12025550123"
-                                    value={phoneNumber}
-                                    onChange={(e) =>
-                                        setPhoneNumber(e.target.value)
-                                    }
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white text-slate-800 placeholder-gray-400"
                                     required
                                 />
                             </div>
-                            <p className="text-xs text-gray-500 mt-2 italic">
-                                Use international format (e.g., +12025550123)
-                            </p>
                         </div>
 
                         <div>

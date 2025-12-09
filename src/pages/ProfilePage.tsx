@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 interface User {
-    phoneNumber: string;
+    email: string;
     firstName?: string;
     secondName?: string;
 }
@@ -16,7 +16,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
     const [formData, setFormData] = useState({
         firstName: user.firstName || "",
         secondName: user.secondName || "",
-        phoneNumber: user.phoneNumber,
+        email: user.email,
     });
 
     const handleSave = () => {
@@ -63,10 +63,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                         <div className="space-y-6">
                             <div className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-l-4 border-indigo-500">
                                 <label className="text-indigo-700 text-sm font-bold uppercase tracking-wide">
-                                    Phone Number
+                                    Email
                                 </label>
                                 <p className="text-2xl font-bold mt-2 text-slate-800">
-                                    {user.phoneNumber}
+                                    {user.email}
                                 </p>
                             </div>
                             <div className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-l-4 border-green-500">
@@ -90,16 +90,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                         <div className="space-y-5">
                             <div>
                                 <label className="block text-sm font-bold text-indigo-700 mb-2 uppercase tracking-wide">
-                                    Phone Number
+                                    Email
                                 </label>
                                 <input
-                                    type="tel"
-                                    value={formData.phoneNumber}
+                                    type="email"
+                                    value={formData.email}
                                     disabled
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed text-gray-500 font-medium"
                                 />
                                 <p className="text-xs text-gray-500 mt-2 italic">
-                                    Phone number cannot be changed
+                                    Email cannot be changed
                                 </p>
                             </div>
                             <div>
@@ -145,8 +145,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, updateProfile }) => {
                         </div>
                     )}
                 </div>
-
-                {/* Order History Section */}
 
                 {/* Security Section */}
                 <div className="mt-8 bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition">

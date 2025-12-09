@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Mail } from "lucide-react";
 import { RegisterData } from "../types";
 
 interface RegisterPageProps {
@@ -20,7 +20,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
             confirmPassword: string;
         }
     >({
-        phoneNumber: "",
+        email: "",
         password: "",
         firstName: "",
         secondName: "",
@@ -30,11 +30,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
     const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const phoneRegex = /^\+[1-9]\d{1,14}$/;
-        if (!phoneRegex.test(formData.phoneNumber)) {
-            alert(
-                "Phone number must be in international format (e.g., +12025550123)"
-            );
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            alert("Please enter a valid email address");
             return;
         }
 
@@ -83,26 +81,63 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                     <form onSubmit={onSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">
-                                Phone Number *
+                                Email *
+                            </label>
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-500">
+                                    <Mail size={20} />
+                                </div>
+                                <input
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    value={formData.email}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            email: e.target.value,
+                                        })
+                                    }
+                                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">
+                                First Name (Optional)
                             </label>
                             <input
-                                type="tel"
-                                placeholder="+12025550123"
-                                value={formData.phoneNumber}
+                                type="text"
+                                placeholder="John"
+                                value={formData.firstName}
                                 onChange={(e) =>
                                     setFormData({
                                         ...formData,
-                                        phoneNumber: e.target.value,
+                                        firstName: e.target.value,
                                     })
                                 }
                                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
-                                required
                             />
-                            <p className="text-xs text-gray-500 mt-1">
-                                Use international format (e.g., +12025550123)
-                            </p>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">
+                                Last Name (Optional)
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Doe"
+                                value={formData.secondName}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        secondName: e.target.value,
+                                    })
+                                }
+                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
+                            />
+                        </div>
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-2">

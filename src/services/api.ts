@@ -58,7 +58,7 @@ export const register = async (
     userData: RegisterData & { firstName?: string; secondName?: string }
 ): Promise<{ user: User; userId: string }> => {
     const requestBody = {
-        phoneNumber: userData.phoneNumber,
+        email: userData.email,
         password: userData.password,
         firstName: userData.firstName?.trim() || "",
         secondName: userData.secondName?.trim() || "",
@@ -105,13 +105,13 @@ export const resendVerificationCode = async (
 };
 
 export const login = async (
-    phoneNumber: string,
+    email: string,
     password: string
 ): Promise<LoginResponse> => {
     const response = await fetch(`${API_URL}/client/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, password }),
+        body: JSON.stringify({ email, password }),
         credentials: "include",
     });
     const data: any = await handleResponse(response);

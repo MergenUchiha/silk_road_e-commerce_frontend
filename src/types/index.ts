@@ -21,7 +21,7 @@ export interface User {
     id: string;
     firstName?: string;
     secondName?: string;
-    phoneNumber: string;
+    email: string;
 }
 
 export interface BasketItem {
@@ -56,13 +56,13 @@ export interface Order {
 }
 
 export interface RegisterData {
-    phoneNumber: string;
+    email: string;
     password: string;
 }
 
 export interface LoginResponse {
     id: string;
-    phoneNumber: string;
+    email: string;
     firstName?: string;
     secondName?: string;
     accessToken: string;
