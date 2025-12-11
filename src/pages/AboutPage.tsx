@@ -58,20 +58,17 @@ const AboutPage: React.FC = () => {
                             Our Story
                         </h2>
                         <p className="text-gray-700 mb-4 leading-relaxed">
-                            Our online store was founded in 2020 with the goal
-                            of providing customers with a convenient platform to
-                            purchase quality products at affordable prices.
+                            Welcome to our store — your online gateway to authentic Turkmen craftsmanship. We bring the finest textile products, from premium cotton towels and bed sheets to stylish cotton jeans, along with expertly crafted leather shoes, belts, and wallets, directly to Romania.
                         </p>
                         <p className="text-gray-700 mb-4 leading-relaxed">
-                            During this time, we have grown into a team of
-                            professionals working to make your shopping
-                            experience as comfortable as possible. We constantly
-                            expand our range and improve the quality of service.
+                            Our mission is simple: to connect Romanian customers with high-quality, natural, and beautifully made Turkmen goods.
                         </p>
                         <p className="text-gray-700 leading-relaxed">
-                            Today, thousands of customers across the country
-                            trust us, and we continue to grow to justify your
-                            trust every day.
+                            We believe in quality, honesty, and cultural connection — and we’re here to deliver exceptional products that make your everyday life better.
+                        </p>
+                        <br />
+                        <p className="text-gray-700 leading-relaxed">
+                            Discover authenticity. Experience comfort. Choose craftsmanship
                         </p>
                     </div>
 

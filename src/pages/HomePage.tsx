@@ -203,7 +203,7 @@ const HomePage: React.FC<HomePageProps> = ({ setCurrentPage }) => {
                 </div>
             </div>
 
-            {/* Trust Badges */}
+            {/* Trust Badges
             <div className="bg-gradient-to-r from-slate-800 to-slate-900 py-12">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -241,7 +241,7 @@ const HomePage: React.FC<HomePageProps> = ({ setCurrentPage }) => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };
