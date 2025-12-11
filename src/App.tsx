@@ -21,6 +21,7 @@ import {
     RegisterData,
 } from "./types";
 import * as api from "./services/api";
+import { identifyUser, trackEvent, resetUser, setUserProperties } from "./services/posthog";
 
 function App() {
     const [currentPage, setCurrentPage] = useState<string>("home");
@@ -44,6 +45,14 @@ function App() {
         }
         loadInitialData();
     }, []);
+
+    // Отслеживание смены страниц
+    useEffect(() => {
+        trackEvent('page_view', {
+            page: currentPage,
+            ...(selectedProductId && { productId: selectedProductId })
+        });
+    }, [currentPage, selectedProductId]);
 
     const navigateToPage = (page: string, productId?: string) => {
         setCurrentPage(page);
@@ -75,6 +84,14 @@ function App() {
                     const userData = await api.getMe();
                     console.log("User data:", userData);
                     setUser(userData);
+                    
+                    // Идентификация пользователя в PostHog
+                    identifyUser(userData.id, {
+                        email: userData.email,
+                        firstName: userData.firstName,
+                        secondName: userData.secondName,
+                    });
+                    
                     await loadBasket();
                 } catch (error) {
                     console.error("Failed to get user:", error);
@@ -84,6 +101,10 @@ function App() {
             }
         } catch (error) {
             console.error("Failed to load initial data:", error);
+            trackEvent('error', {
+                type: 'load_initial_data',
+                message: error instanceof Error ? error.message : 'Unknown error'
+            });
         } finally {
             setLoading(false);
         }
@@ -99,8 +120,18 @@ function App() {
             console.log(`Products loaded for page ${page}:`, productsData);
             setProducts(productsData.products);
             setProductsCount(productsData.count);
+            
+            trackEvent('products_loaded', {
+                page,
+                count: productsData.count,
+                categoryId
+            });
         } catch (error) {
             console.error("Failed to load products:", error);
+            trackEvent('error', {
+                type: 'load_products',
+                message: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     };
 
@@ -119,16 +150,35 @@ function App() {
         try {
             const loginData = await api.login(email, password);
             console.log("Login response:", loginData);
-            setUser({
+            
+            const userData = {
                 id: loginData.id,
                 email: loginData.email,
                 firstName: loginData.firstName,
                 secondName: loginData.secondName,
+            };
+            
+            setUser(userData);
+            
+            // Идентификация пользователя в PostHog
+            identifyUser(userData.id, {
+                email: userData.email,
+                firstName: userData.firstName,
+                secondName: userData.secondName,
             });
+            
+            trackEvent('user_logged_in', {
+                userId: userData.id,
+                email: userData.email
+            });
+            
             await loadBasket();
             navigateToPage("home");
         } catch (error: any) {
             console.error("Login error:", error);
+            trackEvent('login_failed', {
+                error: error.message
+            });
             alert(error.message || "Login failed");
         }
     };
@@ -139,10 +189,19 @@ function App() {
         try {
             const result = await api.register(userData);
             console.log("Registration result:", result);
+            
+            trackEvent('user_registered', {
+                userId: result.userId,
+                email: userData.email
+            });
+            
             setPendingVerificationUserId(result.userId);
             navigateToPage("verification");
         } catch (error: any) {
             console.error("Registration error:", error);
+            trackEvent('registration_failed', {
+                error: error.message
+            });
             alert(error.message || "Registration failed");
         }
     };
@@ -152,11 +211,19 @@ function App() {
 
         try {
             await api.verifyUser(pendingVerificationUserId, code);
+            
+            trackEvent('user_verified', {
+                userId: pendingVerificationUserId
+            });
+            
             alert("Account verified successfully! Please login.");
             setPendingVerificationUserId(null);
             navigateToPage("login");
         } catch (error: any) {
             console.error("Verification error:", error);
+            trackEvent('verification_failed', {
+                error: error.message
+            });
             alert(error.message || "Verification failed");
         }
     };
@@ -166,6 +233,9 @@ function App() {
 
         try {
             await api.resendVerificationCode(pendingVerificationUserId);
+            trackEvent('verification_code_resent', {
+                userId: pendingVerificationUserId
+            });
             alert("Verification code resent!");
         } catch (error: any) {
             console.error("Resend code error:", error);
@@ -176,6 +246,14 @@ function App() {
     const handleLogout = async () => {
         try {
             await api.logout();
+            
+            trackEvent('user_logged_out', {
+                userId: user?.id
+            });
+            
+            // Сброс пользователя в PostHog
+            resetUser();
+            
             setUser(null);
             setBasket([]);
             localStorage.removeItem("currentPage");
@@ -185,6 +263,7 @@ function App() {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
             localStorage.removeItem("currentPage");
+            resetUser();
             setUser(null);
             setBasket([]);
             navigateToPage("home");
@@ -201,9 +280,20 @@ function App() {
             const basketData = await api.addToBasket(productId, quantity);
             console.log("Basket after adding:", basketData);
             setBasket(basketData.basketItems || []);
+            
+            trackEvent('product_added_to_cart', {
+                productId,
+                quantity,
+                userId: user.id
+            });
+            
             alert(`${quantity} item(s) added to cart!`);
         } catch (error: any) {
             console.error("Add to basket error:", error);
+            trackEvent('add_to_cart_failed', {
+                productId,
+                error: error.message
+            });
             alert(error.message || "Failed to add to basket");
         }
     };
@@ -215,6 +305,12 @@ function App() {
             const basketData = await api.updateBasketItem(itemId, quantity);
             console.log("Basket after update:", basketData);
             setBasket(basketData.basketItems || []);
+            
+            trackEvent('cart_quantity_updated', {
+                itemId,
+                quantity,
+                userId: user?.id
+            });
         } catch (error: any) {
             console.error("Update quantity error:", error);
             alert(error.message || "Failed to update quantity");
@@ -225,6 +321,11 @@ function App() {
         try {
             await api.removeBasketItem(itemId);
             setBasket(basket.filter((item) => item.id !== itemId));
+            
+            trackEvent('product_removed_from_cart', {
+                itemId,
+                userId: user?.id
+            });
         } catch (error: any) {
             console.error("Remove from basket error:", error);
             alert(error.message || "Failed to remove item");
@@ -233,12 +334,32 @@ function App() {
 
     const handleCheckout = async (shippingData: ShippingData) => {
         try {
-            await api.createOrder(shippingData);
+            const order = await api.createOrder(shippingData);
+            
+            // Расчет общей стоимости
+            const totalAmount = basket.reduce(
+                (sum, item) => sum + item.product.price * item.quantity,
+                0
+            );
+            
+            trackEvent('order_completed', {
+                orderId: order.id,
+                totalAmount,
+                itemsCount: basket.length,
+                userId: user?.id,
+                city: shippingData.city,
+                deliveryDate: shippingData.dateOfDelivery
+            });
+            
             setBasket([]);
             navigateToPage("home");
             alert("Order placed successfully!");
         } catch (error: any) {
             console.error("Checkout error:", error);
+            trackEvent('checkout_failed', {
+                error: error.message,
+                userId: user?.id
+            });
             alert(error.message || "Failed to place order");
         }
     };
@@ -248,6 +369,18 @@ function App() {
             const updatedUser = await api.updateProfile(updatedData);
             console.log("Profile updated:", updatedUser);
             setUser(updatedUser);
+            
+            // Обновление свойств пользователя в PostHog
+            setUserProperties({
+                firstName: updatedUser.firstName,
+                secondName: updatedUser.secondName,
+                email: updatedUser.email
+            });
+            
+            trackEvent('profile_updated', {
+                userId: updatedUser.id
+            });
+            
             alert("Profile updated successfully!");
         } catch (error: any) {
             console.error("Update profile error:", error);
@@ -257,6 +390,12 @@ function App() {
 
     const handleViewProduct = (productId: string) => {
         console.log("Viewing product:", productId);
+        
+        trackEvent('product_viewed', {
+            productId,
+            userId: user?.id
+        });
+        
         navigateToPage("product-detail", productId);
     };
 
