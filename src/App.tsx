@@ -96,7 +96,6 @@ function App() {
                 } catch (error) {
                     console.error("Failed to get user:", error);
                     localStorage.removeItem("accessToken");
-                    localStorage.removeItem("refreshToken");
                 }
             }
         } catch (error) {
@@ -261,7 +260,6 @@ function App() {
         } catch (error) {
             console.error("Logout failed:", error);
             localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
             localStorage.removeItem("currentPage");
             resetUser();
             setUser(null);

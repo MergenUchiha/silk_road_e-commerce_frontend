@@ -66,7 +66,6 @@ export interface LoginResponse {
     firstName?: string;
     secondName?: string;
     accessToken: string;
-    refreshToken: string;
 }
 
 export interface ApiResponse<T> {

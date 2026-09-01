@@ -120,9 +120,9 @@ export const login = async (
     if (loginData.accessToken) {
         localStorage.setItem("accessToken", loginData.accessToken);
     }
-    if (loginData.refreshToken) {
-        localStorage.setItem("refreshToken", loginData.refreshToken);
-    }
+    // The refresh token is intentionally not stored: the backend sends it as
+    // an httpOnly cookie, which `credentials: "include"` replays on /refresh.
+    // Keeping a copy in localStorage would expose it to any XSS.
 
     return loginData;
 };
@@ -135,7 +135,6 @@ export const logout = async (): Promise<void> => {
     });
 
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
 };
 
 export const getMe = async (): Promise<User> => {
