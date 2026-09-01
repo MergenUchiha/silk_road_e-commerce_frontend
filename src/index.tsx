@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import { initPostHog } from "./services/posthog";
 
-// Инициализация PostHog
 initPostHog();
 
 const root = ReactDOM.createRoot(
@@ -12,6 +12,8 @@ const root = ReactDOM.createRoot(
 );
 root.render(
     <React.StrictMode>
-        <App />
+        <BrowserRouter>
+            <App />
+        </BrowserRouter>
     </React.StrictMode>
 );

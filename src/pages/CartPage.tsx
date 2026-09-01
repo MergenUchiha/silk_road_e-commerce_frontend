@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import CartItem from "../components/cart/CartItem";
 import CartSummary from "../components/cart/CartSummary";
@@ -9,7 +10,6 @@ interface CartPageProps {
     updateQuantity: (itemId: string, quantity: number) => void;
     removeFromBasket: (itemId: string) => void;
     user: User | null;
-    setCurrentPage: (page: string) => void;
     onCheckout: (shippingData: ShippingData) => void;
 }
 
@@ -18,9 +18,9 @@ const CartPage: React.FC<CartPageProps> = ({
     updateQuantity,
     removeFromBasket,
     user,
-    setCurrentPage,
     onCheckout,
 }) => {
+    const navigate = useNavigate();
     const total = basket.reduce(
         (sum, item) => sum + item.product.price * item.quantity,
         0
@@ -45,7 +45,7 @@ const CartPage: React.FC<CartPageProps> = ({
                             textiles
                         </p>
                         <button
-                            onClick={() => setCurrentPage("products")}
+                            onClick={() => navigate("/products")}
                             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 rounded-lg hover:from-amber-500 hover:to-yellow-600 transition font-bold text-lg shadow-lg"
                         >
                             <ShoppingCart size={20} />
@@ -63,7 +63,7 @@ const CartPage: React.FC<CartPageProps> = ({
                 {/* Header */}
                 <div className="mb-8">
                     <button
-                        onClick={() => setCurrentPage("products")}
+                        onClick={() => navigate("/products")}
                         className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-4 font-medium transition"
                     >
                         <ArrowLeft size={20} />
@@ -98,7 +98,6 @@ const CartPage: React.FC<CartPageProps> = ({
                                 total={total}
                                 onCheckout={onCheckout}
                                 user={user}
-                                setCurrentPage={setCurrentPage}
                             />
                         </div>
                     </div>

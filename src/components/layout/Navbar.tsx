@@ -1,86 +1,64 @@
 import React from "react";
-import { ShoppingCart, User, LogOut, Package } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { ShoppingCart, User, LogOut } from "lucide-react";
 import { User as UserType } from "../../types";
 
 interface NavbarProps {
-    currentPage: string;
-    setCurrentPage: (page: string) => void;
     user: UserType | null;
     basketCount: number;
     onLogout: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({
-    currentPage,
-    setCurrentPage,
-    user,
-    basketCount,
-    onLogout,
-}) => {
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `font-medium transition ${
+        isActive ? "text-indigo-600" : "text-gray-700 hover:text-indigo-600"
+    }`;
+
+const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex-1 py-2 text-sm font-medium text-center ${
+        isActive ? "text-indigo-600" : "text-gray-700"
+    }`;
+
+const Navbar: React.FC<NavbarProps> = ({ user, basketCount, onLogout }) => {
+    const navigate = useNavigate();
+
     return (
         <nav className="bg-white shadow-md sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo & Navigation */}
                     <div className="flex items-center gap-8">
-                        <h1
-                            className="text-2xl font-bold text-indigo-600 cursor-pointer"
-                            onClick={() => setCurrentPage("home")}
+                        <Link
+                            to="/"
+                            className="text-2xl font-bold text-indigo-600"
                         >
-                            Shop
-                        </h1>
+                            Silk Road
+                        </Link>
 
                         <div className="hidden md:flex gap-6">
-                            <button
-                                onClick={() => setCurrentPage("home")}
-                                className={`font-medium transition ${
-                                    currentPage === "home"
-                                        ? "text-indigo-600"
-                                        : "text-gray-700 hover:text-indigo-600"
-                                }`}
-                            >
+                            <NavLink to="/" end className={linkClass}>
                                 Home
-                            </button>
-                            <button
-                                onClick={() => setCurrentPage("products")}
-                                className={`font-medium transition ${
-                                    currentPage === "products"
-                                        ? "text-indigo-600"
-                                        : "text-gray-700 hover:text-indigo-600"
-                                }`}
-                            >
+                            </NavLink>
+                            <NavLink to="/products" className={linkClass}>
                                 Products
-                            </button>
-                            <button
-                                onClick={() => setCurrentPage("about")}
-                                className={`font-medium transition ${
-                                    currentPage === "about"
-                                        ? "text-indigo-600"
-                                        : "text-gray-700 hover:text-indigo-600"
-                                }`}
-                            >
+                            </NavLink>
+                            <NavLink to="/about" className={linkClass}>
                                 About
-                            </button>
+                            </NavLink>
                             {user && (
-                                <button
-                                    onClick={() => setCurrentPage("orders")}
-                                    className={`font-medium transition ${
-                                        currentPage === "orders"
-                                            ? "text-indigo-600"
-                                            : "text-gray-700 hover:text-indigo-600"
-                                    }`}
-                                >
+                                <NavLink to="/orders" className={linkClass}>
                                     Orders
-                                </button>
+                                </NavLink>
                             )}
                         </div>
                     </div>
 
                     {/* Cart & Profile */}
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setCurrentPage("cart")}
+                        <Link
+                            to="/cart"
                             className="relative p-2 hover:bg-gray-100 rounded-lg transition"
+                            aria-label="Cart"
                         >
                             <ShoppingCart size={24} />
                             {basketCount > 0 && (
@@ -88,21 +66,24 @@ const Navbar: React.FC<NavbarProps> = ({
                                     {basketCount}
                                 </span>
                             )}
-                        </button>
+                        </Link>
 
                         {user ? (
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setCurrentPage("profile")}
+                                <Link
+                                    to="/profile"
                                     className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-lg transition"
                                 >
                                     <User size={20} />
                                     <span className="hidden md:inline">
                                         {user.firstName}
                                     </span>
-                                </button>
+                                </Link>
                                 <button
-                                    onClick={onLogout}
+                                    onClick={() => {
+                                        onLogout();
+                                        navigate("/");
+                                    }}
                                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
                                     title="Logout"
                                 >
@@ -110,59 +91,31 @@ const Navbar: React.FC<NavbarProps> = ({
                                 </button>
                             </div>
                         ) : (
-                            <button
-                                onClick={() => setCurrentPage("login")}
+                            <Link
+                                to="/login"
                                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
                             >
                                 Login
-                            </button>
+                            </Link>
                         )}
                     </div>
                 </div>
 
                 {/* Mobile Navigation */}
                 <div className="md:hidden flex gap-4 pb-3 border-t pt-3">
-                    <button
-                        onClick={() => setCurrentPage("home")}
-                        className={`flex-1 py-2 text-sm font-medium ${
-                            currentPage === "home"
-                                ? "text-indigo-600"
-                                : "text-gray-700"
-                        }`}
-                    >
+                    <NavLink to="/" end className={mobileLinkClass}>
                         Home
-                    </button>
-                    <button
-                        onClick={() => setCurrentPage("products")}
-                        className={`flex-1 py-2 text-sm font-medium ${
-                            currentPage === "products"
-                                ? "text-indigo-600"
-                                : "text-gray-700"
-                        }`}
-                    >
+                    </NavLink>
+                    <NavLink to="/products" className={mobileLinkClass}>
                         Products
-                    </button>
-                    <button
-                        onClick={() => setCurrentPage("about")}
-                        className={`flex-1 py-2 text-sm font-medium ${
-                            currentPage === "about"
-                                ? "text-indigo-600"
-                                : "text-gray-700"
-                        }`}
-                    >
+                    </NavLink>
+                    <NavLink to="/about" className={mobileLinkClass}>
                         About
-                    </button>
+                    </NavLink>
                     {user && (
-                        <button
-                            onClick={() => setCurrentPage("orders")}
-                            className={`flex-1 py-2 text-sm font-medium ${
-                                currentPage === "orders"
-                                    ? "text-indigo-600"
-                                    : "text-gray-700"
-                            }`}
-                        >
+                        <NavLink to="/orders" className={mobileLinkClass}>
                             Orders
-                        </button>
+                        </NavLink>
                     )}
                 </div>
             </div>

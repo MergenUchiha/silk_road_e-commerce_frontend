@@ -14,7 +14,6 @@ interface ProductsPageProps {
         take: number,
         categoryId?: string
     ) => Promise<void>;
-    onViewProduct: (productId: string) => void;
 }
 
 const ProductsPage: React.FC<ProductsPageProps> = ({
@@ -23,7 +22,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
     totalCount,
     onAddToCart,
     onLoadProducts,
-    onViewProduct,
 }) => {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(
         null
@@ -31,9 +29,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const productsPerPage = 15;
-
-    console.log("ProductsPage: onViewProduct type:", typeof onViewProduct);
-    console.log("ProductsPage: onViewProduct:", onViewProduct);
 
     const safeProducts = Array.isArray(products) ? products : [];
 
@@ -51,12 +46,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
         setCurrentPage(1);
     }, [selectedCategory]);
 
+    // Only scrolling belongs here. Loading is driven by handlePageChange —
+    // doing it in an effect keyed on currentPage fetched every page twice.
     useEffect(() => {
-        if (!selectedCategory) {
-            handlePageChange(currentPage);
-        } else {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }, [currentPage]);
 
     const handlePageChange = async (page: number) => {
@@ -65,22 +58,12 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
             setCurrentPage(page);
             try {
                 await onLoadProducts(page, productsPerPage);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            } catch (error) {
-                console.error("Failed to load page:", error);
             } finally {
                 setIsLoading(false);
             }
         } else {
             setCurrentPage(page);
-            window.scrollTo({ top: 0, behavior: "smooth" });
         }
-    };
-
-    const handleViewProduct = (productId: string) => {
-        console.log("ProductsPage: handleViewProduct called with:", productId);
-        console.log("ProductsPage: Calling onViewProduct...");
-        onViewProduct(productId);
     };
 
     const displayProducts = selectedCategory
@@ -89,16 +72,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
               currentPage * productsPerPage
           )
         : safeProducts;
-
-    console.log("=== Products Page Debug ===");
-    console.log("Total count from backend:", totalCount);
-    console.log("Selected category:", selectedCategory);
-    console.log("Filtered products count:", filteredProducts.length);
-    console.log("Effective total count:", effectiveTotalCount);
-    console.log("Products per page:", productsPerPage);
-    console.log("Total pages:", totalPages);
-    console.log("Current page:", currentPage);
-    console.log("Display products:", displayProducts.length);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -143,7 +116,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({
                         <ProductList
                             products={displayProducts}
                             onAddToCart={onAddToCart}
-                            onViewProduct={handleViewProduct}
                         />
 
                         {totalPages > 1 && (

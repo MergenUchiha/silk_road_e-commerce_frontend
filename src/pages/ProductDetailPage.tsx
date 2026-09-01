@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
     Package,
     Star,
@@ -13,18 +13,16 @@ import { Product, User } from "../types";
 import * as api from "../services/api";
 
 interface ProductDetailPageProps {
-    productId: string;
     user: User | null;
-    setCurrentPage: (page: string) => void;
     onAddToCart: (productId: string, quantity?: number) => void;
 }
 
 const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
-    productId,
     user,
-    setCurrentPage,
     onAddToCart,
 }) => {
+    const { productId } = useParams<{ productId: string }>();
+    const navigate = useNavigate();
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState(0);
@@ -33,23 +31,25 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     const [reviewRating, setReviewRating] = useState(5);
     const [submittingReview, setSubmittingReview] = useState(false);
 
-    useEffect(() => {
-        loadProduct();
-    }, [productId]);
+    const loadProduct = useCallback(async () => {
+        if (!productId) return;
 
-    const loadProduct = async () => {
         try {
             setLoading(true);
             const productData = await api.getProduct(productId);
-            console.log("Product loaded:", productData);
             setProduct(productData);
         } catch (error) {
-            console.error("Failed to load product:", error);
-            alert("Failed to load product");
+            const message =
+                error instanceof Error ? error.message : "Unknown error";
+            alert(`Failed to load product: ${message}`);
         } finally {
             setLoading(false);
         }
-    };
+    }, [productId]);
+
+    useEffect(() => {
+        loadProduct();
+    }, [loadProduct]);
 
     const handleQuantityChange = (newQuantity: number) => {
         if (newQuantity >= 1 && newQuantity <= 99) {
@@ -65,9 +65,11 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
     const handleSubmitReview = async () => {
         if (!user) {
-            setCurrentPage("login");
+            navigate("/login");
             return;
         }
+
+        if (!productId) return;
 
         if (!reviewComment.trim()) {
             alert("Please enter a comment");
@@ -82,7 +84,6 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             await loadProduct();
             alert("Review submitted successfully!");
         } catch (error: any) {
-            console.error("Failed to submit review:", error);
             alert(error.message || "Failed to submit review");
         } finally {
             setSubmittingReview(false);
@@ -99,7 +100,6 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             await loadProduct();
             alert("Review deleted successfully!");
         } catch (error: any) {
-            console.error("Failed to delete review:", error);
             alert(error.message || "Failed to delete review");
         }
     };
@@ -158,7 +158,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                             Product not found
                         </p>
                         <button
-                            onClick={() => setCurrentPage("products")}
+                            onClick={() => navigate("/products")}
                             className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-bold shadow-lg"
                         >
                             Back to Products
@@ -179,7 +179,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 py-8">
                 <button
-                    onClick={() => setCurrentPage("products")}
+                    onClick={() => navigate("/products")}
                     className="flex items-center gap-2 text-indigo-600 hover:text-purple-600 mb-6 font-bold transition"
                 >
                     <ArrowLeft size={20} />
@@ -384,7 +384,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                                 Please login to write a review
                             </p>
                             <button
-                                onClick={() => setCurrentPage("login")}
+                                onClick={() => navigate("/login")}
                                 className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-bold shadow-lg"
                             >
                                 Login

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserPlus, Mail } from "lucide-react";
 import { RegisterData } from "../types";
 
@@ -6,13 +7,10 @@ interface RegisterPageProps {
     handleRegister: (
         userData: RegisterData & { firstName: string; secondName: string }
     ) => void;
-    setCurrentPage: (page: string) => void;
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({
-    handleRegister,
-    setCurrentPage,
-}) => {
+const RegisterPage: React.FC<RegisterPageProps> = ({ handleRegister }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState<
         RegisterData & {
             firstName: string;
@@ -191,7 +189,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         <p className="text-gray-600">
                             Already have an account?{" "}
                             <button
-                                onClick={() => setCurrentPage("login")}
+                                onClick={() => navigate("/login")}
                                 className="text-amber-600 hover:text-amber-700 font-bold hover:underline transition"
                             >
                                 Login
@@ -203,7 +201,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                 {/* Back to home */}
                 <div className="text-center mt-6">
                     <button
-                        onClick={() => setCurrentPage("home")}
+                        onClick={() => navigate("/")}
                         className="text-indigo-200 hover:text-white transition"
                     >
                         ← Back to Home

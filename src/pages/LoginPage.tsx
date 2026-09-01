@@ -1,15 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
 
 interface LoginPageProps {
     handleLogin: (email: string, password: string) => void;
-    setCurrentPage: (page: string) => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({
-    handleLogin,
-    setCurrentPage,
-}) => {
+const LoginPage: React.FC<LoginPageProps> = ({ handleLogin }) => {
+    const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -114,7 +112,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                         <p className="text-gray-600">
                             Don't have an account?{" "}
                             <button
-                                onClick={() => setCurrentPage("register")}
+                                onClick={() => navigate("/register")}
                                 className="text-indigo-600 hover:text-purple-600 font-bold underline decoration-2 underline-offset-2 hover:decoration-purple-600 transition"
                             >
                                 Register

@@ -1,39 +1,27 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Package, Eye } from "lucide-react";
 import { Product } from "../../types";
 
 interface ProductCardProps {
     product: Product;
     onAddToCart: (productId: string) => void;
-    onViewProduct: (productId: string) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({
-    product,
-    onAddToCart,
-    onViewProduct,
-}) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     const imageUrl =
         product.images && product.images.length > 0
             ? `${product.images[0].filePath}`
             : null;
 
-    const handleViewClick = () => {
-        console.log("ProductCard: View clicked for", product.id);
-        onViewProduct(product.id);
-    };
-
-    const handleAddToCartClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        console.log("ProductCard: Add to cart clicked for", product.id);
-        onAddToCart(product.id);
-    };
+    // A real link, so the card can be opened in a new tab or shared.
+    const productPath = `/products/${product.id}`;
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition h-full flex flex-col">
-            <div
-                className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center relative cursor-pointer"
-                onClick={handleViewClick}
+            <Link
+                to={productPath}
+                className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center relative"
             >
                 {imageUrl ? (
                     <img
@@ -51,13 +39,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
                         </div>
                     </div>
                 </div>
-            </div>
+            </Link>
             <div className="p-4 flex flex-col flex-1">
-                <h3
-                    className="font-bold text-lg mb-2 cursor-pointer hover:text-indigo-600 transition"
-                    onClick={handleViewClick}
-                >
-                    {product.title}
+                <h3 className="font-bold text-lg mb-2">
+                    <Link
+                        to={productPath}
+                        className="hover:text-indigo-600 transition"
+                    >
+                        {product.title}
+                    </Link>
                 </h3>
                 <p className="text-gray-600 text-sm mb-3 line-clamp-2 flex-1">
                     {product.description}
@@ -67,15 +57,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
                         ${product.price.toLocaleString()}
                     </span>
                     <div className="flex gap-2">
-                        <button
-                            onClick={handleViewClick}
+                        <Link
+                            to={productPath}
                             className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
                             title="View details"
                         >
                             <Eye size={18} />
-                        </button>
+                        </Link>
                         <button
-                            onClick={handleAddToCartClick}
+                            onClick={() => onAddToCart(product.id)}
                             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
                         >
                             Add

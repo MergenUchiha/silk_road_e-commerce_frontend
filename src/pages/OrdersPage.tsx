@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Package,
     Calendar,
@@ -11,11 +12,8 @@ import {
 import { Order } from "../types";
 import * as api from "../services/api";
 
-interface OrdersPageProps {
-    setCurrentPage: (page: string) => void;
-}
-
-const OrdersPage: React.FC<OrdersPageProps> = ({ setCurrentPage }) => {
+const OrdersPage: React.FC = () => {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -23,23 +21,23 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ setCurrentPage }) => {
         null
     );
 
-    useEffect(() => {
-        loadOrders();
-    }, []);
-
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async () => {
         try {
             setLoading(true);
             const ordersData = await api.getMyOrders();
-            console.log("Orders loaded:", ordersData);
             setOrders(ordersData);
         } catch (error) {
-            console.error("Failed to load orders:", error);
-            alert("Failed to load orders");
+            const message =
+                error instanceof Error ? error.message : "Unknown error";
+            alert(`Failed to load orders: ${message}`);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        loadOrders();
+    }, [loadOrders]);
 
     const handleCancelOrder = async (orderId: string) => {
         if (!window.confirm("Are you sure you want to cancel this order?")) {
@@ -55,7 +53,6 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ setCurrentPage }) => {
                 setSelectedOrder(null);
             }
         } catch (error: any) {
-            console.error("Failed to cancel order:", error);
             alert(error.message || "Failed to cancel order");
         } finally {
             setCancellingOrderId(null);
@@ -288,7 +285,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ setCurrentPage }) => {
 
             <div className="max-w-6xl mx-auto px-4 py-8">
                 <button
-                    onClick={() => setCurrentPage("home")}
+                    onClick={() => navigate("/")}
                     className="flex items-center gap-2 text-indigo-600 hover:text-purple-600 mb-6 font-bold transition"
                 >
                     <ArrowLeft size={20} />
@@ -307,7 +304,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ setCurrentPage }) => {
                             Start shopping to see your orders here
                         </p>
                         <button
-                            onClick={() => setCurrentPage("products")}
+                            onClick={() => navigate("/products")}
                             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition font-bold text-lg shadow-lg"
                         >
                             <Package size={20} />

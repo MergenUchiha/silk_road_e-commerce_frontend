@@ -1,35 +1,54 @@
-import posthog from 'posthog-js';
+import posthog from "posthog-js";
 
-// Инициализация PostHog
+const POSTHOG_KEY = process.env.REACT_APP_POSTHOG_KEY;
+const POSTHOG_HOST =
+    process.env.REACT_APP_POSTHOG_HOST ?? "https://us.i.posthog.com";
+
+/**
+ * Analytics is optional: without a key the app runs normally and every
+ * tracking call below becomes a no-op.
+ */
+let enabled = false;
+
 export const initPostHog = () => {
-    if (typeof window !== 'undefined') {
-        posthog.init('REACT_APP_POSTHOG_KEY_PLACEHOLDER', {
-            api_host: 'https://us.i.posthog.com',
-            person_profiles: 'identified_only',
-            capture_pageview: true,
-            capture_pageleave: true,
-            autocapture: true,
-        });
+    if (typeof window === "undefined" || !POSTHOG_KEY) {
+        return;
     }
+
+    posthog.init(POSTHOG_KEY, {
+        api_host: POSTHOG_HOST,
+        person_profiles: "identified_only",
+        capture_pageview: false, // the router reports page views itself
+        capture_pageleave: true,
+        autocapture: true,
+    });
+
+    enabled = true;
 };
 
-// Идентификация пользователя
-export const identifyUser = (userId: string, traits?: Record<string, any>) => {
+export const identifyUser = (
+    userId: string,
+    traits?: Record<string, any>
+) => {
+    if (!enabled) return;
     posthog.identify(userId, traits);
 };
 
-// Отслеживание событий
-export const trackEvent = (eventName: string, properties?: Record<string, any>) => {
+export const trackEvent = (
+    eventName: string,
+    properties?: Record<string, any>
+) => {
+    if (!enabled) return;
     posthog.capture(eventName, properties);
 };
 
-// Сброс пользователя при логауте
 export const resetUser = () => {
+    if (!enabled) return;
     posthog.reset();
 };
 
-// Установка свойств пользователя
 export const setUserProperties = (properties: Record<string, any>) => {
+    if (!enabled) return;
     posthog.setPersonProperties(properties);
 };
 

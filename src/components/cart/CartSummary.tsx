@@ -1,19 +1,19 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShippingData, User } from "../../types";
 
 interface CartSummaryProps {
     total: number;
     onCheckout: (shippingData: ShippingData) => void;
     user: User | null;
-    setCurrentPage: (page: string) => void;
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({
     total,
     onCheckout,
     user,
-    setCurrentPage,
 }) => {
+    const navigate = useNavigate();
     const [showCheckout, setShowCheckout] = useState(false);
     const [shippingData, setShippingData] = useState<ShippingData>({
         city: "",
@@ -23,7 +23,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
 
     const handleCheckout = () => {
         if (!user) {
-            setCurrentPage("login");
+            navigate("/login");
             return;
         }
 
@@ -58,7 +58,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                 <button
                     onClick={() => {
                         if (!user) {
-                            setCurrentPage("login");
+                            navigate("/login");
                         } else {
                             setShowCheckout(true);
                         }

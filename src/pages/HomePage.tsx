@@ -1,18 +1,16 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Package,
     ShoppingCart,
-    User,
     TrendingUp,
     Shield,
     Star,
 } from "lucide-react";
 
-interface HomePageProps {
-    setCurrentPage: (page: string) => void;
-}
+const HomePage: React.FC = () => {
+    const navigate = useNavigate();
 
-const HomePage: React.FC<HomePageProps> = ({ setCurrentPage }) => {
     return (
         <div className="min-h-screen">
             {/* Hero Section with Silk Road Theme */}
@@ -58,7 +56,7 @@ const HomePage: React.FC<HomePageProps> = ({ setCurrentPage }) => {
                         {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                             <button
-                                onClick={() => setCurrentPage("products")}
+                                onClick={() => navigate("/products")}
                                 className="px-8 py-4 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 rounded-lg font-bold text-lg hover:from-amber-500 hover:to-yellow-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
                             >
                                 <ShoppingCart size={24} />
@@ -66,7 +64,7 @@ const HomePage: React.FC<HomePageProps> = ({ setCurrentPage }) => {
                             </button>
 
                             <button
-                                onClick={() => setCurrentPage("about")}
+                                onClick={() => navigate("/about")}
                                 className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-lg font-bold text-lg hover:bg-white/20 transition"
                             >
                                 Learn More
@@ -192,7 +190,7 @@ const HomePage: React.FC<HomePageProps> = ({ setCurrentPage }) => {
                                 world.
                             </p>
                             <button
-                                onClick={() => setCurrentPage("products")}
+                                onClick={() => navigate("/products")}
                                 className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg"
                             >
                                 <TrendingUp size={24} />

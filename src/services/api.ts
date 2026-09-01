@@ -10,67 +10,173 @@ import {
     PageQuery,
 } from "../types";
 
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_URL = process.env.REACT_APP_BACKEND_URL ?? "";
 
-// Helper function to get auth headers (with Content-Type)
-const getAuthHeaders = (): HeadersInit => {
-    const token = localStorage.getItem("accessToken");
-    return {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-    };
-};
+const ACCESS_TOKEN_KEY = "accessToken";
 
-// Helper function to get auth headers WITHOUT Content-Type (for DELETE/GET)
-const getAuthHeadersWithoutContentType = (): HeadersInit => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-        return {
-            Authorization: `Bearer ${token}`,
-        };
+/**
+ * Reports a missing base URL as a normal request failure, so the app renders
+ * its error screen instead of firing requests at "undefined/...".
+ */
+function requireApiUrl(): string {
+    if (!API_URL) {
+        throw new Error(
+            "REACT_APP_BACKEND_URL is not set. Copy .env.example to .env and set it."
+        );
     }
-    return {};
-};
+    return API_URL;
+}
 
-// Helper function to handle API responses
-async function handleResponse<T>(response: Response): Promise<T> {
+interface RequestOptions {
+    method?: string;
+    /** Serialized as a JSON body with the matching Content-Type. */
+    body?: unknown;
+    /** Sends the bearer token and allows a refresh retry on 401. */
+    auth?: boolean;
+}
+
+/** Unwraps the `{ good, response, count }` envelope used by the API. */
+interface ApiEnvelope<T> {
+    good?: boolean;
+    response?: T;
+    count?: number;
+    message?: string;
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
         const error = await response
             .json()
             .catch(() => ({ message: "An error occurred" }));
         throw new Error(
-            error.message || `HTTP error! status: ${response.status}`
+            error.errorMessage ||
+                error.message ||
+                `Request failed with status ${response.status}`
         );
     }
 
-    const json = await response.json();
-
-    // Возвращаем весь ответ (включая count)
-    if (json && typeof json === "object" && "good" in json) {
-        return json as T;
+    if (response.status === 204) {
+        return undefined as T;
     }
 
-    return json as T;
+    return (await response.json()) as T;
 }
 
-// Authentication
+let refreshInFlight: Promise<void> | null = null;
+
+/**
+ * Exchanges the httpOnly refresh cookie for a new access token.
+ *
+ * Concurrent callers share one request, so a burst of 401s does not trigger a
+ * burst of refreshes.
+ */
+function refreshSession(): Promise<void> {
+    if (!refreshInFlight) {
+        refreshInFlight = (async () => {
+            const response = await fetch(`${requireApiUrl()}/client/auth/refresh`, {
+                method: "GET",
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                throw new Error("Session expired");
+            }
+
+            const data = (await response.json()) as ApiEnvelope<LoginResponse>;
+            const payload = data.response ?? (data as unknown as LoginResponse);
+
+            if (!payload?.accessToken) {
+                throw new Error("Session expired");
+            }
+
+            localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+        })().finally(() => {
+            refreshInFlight = null;
+        });
+    }
+
+    return refreshInFlight;
+}
+
+async function request<T>(
+    path: string,
+    { method = "GET", body, auth = false }: RequestOptions = {},
+    allowRetry = true
+): Promise<T> {
+    const headers: Record<string, string> = {};
+
+    if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    if (auth) {
+        const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+    }
+
+    const response = await fetch(`${requireApiUrl()}${path}`, {
+        method,
+        headers,
+        credentials: "include",
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+
+    // The access token is short-lived; renew it once and replay the request
+    // before surfacing an error to the user.
+    if (
+        response.status === 401 &&
+        auth &&
+        allowRetry &&
+        localStorage.getItem(ACCESS_TOKEN_KEY)
+    ) {
+        try {
+            await refreshSession();
+        } catch {
+            localStorage.removeItem(ACCESS_TOKEN_KEY);
+            throw new Error("Your session has expired. Please sign in again.");
+        }
+
+        return request<T>(path, { method, body, auth }, false);
+    }
+
+    return parseResponse<T>(response);
+}
+
+/** Reads the payload out of the API envelope. */
+function unwrap<T>(data: ApiEnvelope<T> | T): T {
+    if (data && typeof data === "object" && "response" in data) {
+        return (data as ApiEnvelope<T>).response as T;
+    }
+    return data as T;
+}
+
+function buildQuery(query?: PageQuery): string {
+    const params = new URLSearchParams();
+    if (query?.page) params.append("page", query.page.toString());
+    if (query?.take) params.append("take", query.take.toString());
+    if (query?.q) params.append("q", query.q);
+    const search = params.toString();
+    return search ? `?${search}` : "";
+}
+
+// ---------------------------------------------------------------- Auth
+
 export const register = async (
     userData: RegisterData & { firstName?: string; secondName?: string }
 ): Promise<{ user: User; userId: string }> => {
-    const requestBody = {
-        email: userData.email,
-        password: userData.password,
-        firstName: userData.firstName?.trim() || "",
-        secondName: userData.secondName?.trim() || "",
-    };
-
-    const response = await fetch(`${API_URL}/client/auth/registration`, {
+    const data = await request<ApiEnvelope<User>>("/client/auth/registration", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: {
+            email: userData.email,
+            password: userData.password,
+            firstName: userData.firstName?.trim() || "",
+            secondName: userData.secondName?.trim() || "",
+        },
     });
-    const data: any = await handleResponse(response);
-    const user = data.response || data;
+
+    const user = unwrap<User>(data);
     return { user, userId: user.id };
 };
 
@@ -78,29 +184,19 @@ export const verifyUser = async (
     userId: string,
     code: string
 ): Promise<boolean> => {
-    const response = await fetch(
-        `${API_URL}/client/auth/verification/${userId}`,
-        {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
-        }
-    );
-    await handleResponse<any>(response);
+    await request(`/client/auth/verification/${userId}`, {
+        method: "PATCH",
+        body: { code },
+    });
     return true;
 };
 
 export const resendVerificationCode = async (
     userId: string
 ): Promise<boolean> => {
-    const response = await fetch(
-        `${API_URL}/client/auth/resend-verification/${userId}`,
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        }
-    );
-    await handleResponse<any>(response);
+    await request(`/client/auth/resend-verification/${userId}`, {
+        method: "POST",
+    });
     return true;
 };
 
@@ -108,310 +204,197 @@ export const login = async (
     email: string,
     password: string
 ): Promise<LoginResponse> => {
-    const response = await fetch(`${API_URL}/client/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-    });
-    const data: any = await handleResponse(response);
-    const loginData = data.response || data;
+    const data = await request<ApiEnvelope<LoginResponse>>(
+        "/client/auth/login",
+        { method: "POST", body: { email, password } }
+    );
+
+    const loginData = unwrap<LoginResponse>(data);
 
     if (loginData.accessToken) {
-        localStorage.setItem("accessToken", loginData.accessToken);
+        localStorage.setItem(ACCESS_TOKEN_KEY, loginData.accessToken);
     }
-    // The refresh token is intentionally not stored: the backend sends it as
-    // an httpOnly cookie, which `credentials: "include"` replays on /refresh.
-    // Keeping a copy in localStorage would expose it to any XSS.
+    // The refresh token is deliberately not stored: the backend sends it as an
+    // httpOnly cookie that `credentials: "include"` replays on /refresh.
 
     return loginData;
 };
 
 export const logout = async (): Promise<void> => {
-    await fetch(`${API_URL}/client/auth/logout`, {
-        method: "POST",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
-    });
-
-    localStorage.removeItem("accessToken");
+    try {
+        await request("/client/auth/logout", { method: "POST", auth: true });
+    } finally {
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+    }
 };
 
 export const getMe = async (): Promise<User> => {
-    const response = await fetch(`${API_URL}/client/auth/me`, {
-        method: "GET",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
+    const data = await request<ApiEnvelope<User>>("/client/auth/me", {
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<User>(data);
 };
 
 export const updateProfile = async (userData: Partial<User>): Promise<User> => {
-    const response = await fetch(`${API_URL}/client/auth/me/edit`, {
+    const data = await request<ApiEnvelope<User>>("/client/auth/me/edit", {
         method: "PATCH",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify(userData),
+        body: userData,
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<User>(data);
 };
 
-export const refreshToken = async (): Promise<LoginResponse> => {
-    const response = await fetch(`${API_URL}/client/auth/refresh`, {
-        method: "GET",
-        credentials: "include",
-    });
-    const data: any = await handleResponse(response);
-    const loginData = data.response || data;
+// ------------------------------------------------------------ Categories
 
-    if (loginData.accessToken) {
-        localStorage.setItem("accessToken", loginData.accessToken);
-    }
-
-    return loginData;
-};
-
-// Categories
 export const getCategories = async (query?: PageQuery): Promise<Category[]> => {
-    try {
-        const params = new URLSearchParams();
-        if (query?.page) params.append("page", query.page.toString());
-        if (query?.take) params.append("take", query.take.toString());
-        if (query?.q) params.append("q", query.q);
-
-        const url = `${API_URL}/category${
-            params.toString() ? `?${params.toString()}` : ""
-        }`;
-        const response = await fetch(url);
-        const data: any = await handleResponse(response);
-        const categories = data.response || data;
-
-        if (Array.isArray(categories)) {
-            return categories;
-        }
-
-        console.warn("Categories response is not an array:", categories);
-        return [];
-    } catch (error) {
-        console.error("Failed to load categories:", error);
-        return [];
-    }
+    const data = await request<ApiEnvelope<Category[]>>(
+        `/category${buildQuery(query)}`
+    );
+    const categories = unwrap<Category[]>(data);
+    return Array.isArray(categories) ? categories : [];
 };
 
 export const getCategory = async (categoryId: string): Promise<Category> => {
-    const response = await fetch(`${API_URL}/category/${categoryId}`);
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    const data = await request<ApiEnvelope<Category>>(
+        `/category/${categoryId}`
+    );
+    return unwrap<Category>(data);
 };
 
-// Products
+// -------------------------------------------------------------- Products
+
 export const getProducts = async (
     query?: PageQuery
 ): Promise<{ products: Product[]; count: number }> => {
-    console.log("start product getting");
-    try {
-        const params = new URLSearchParams();
-        if (query?.page) params.append("page", query.page.toString());
-        if (query?.take) params.append("take", query.take.toString());
-        if (query?.q) params.append("q", query.q);
+    const data = await request<ApiEnvelope<Product[]>>(
+        `/product${buildQuery(query)}`
+    );
 
-        const url = `${API_URL}/product${
-            params.toString() ? `?${params.toString()}` : ""
-        }`;
-        const response = await fetch(url);
-        const data: any = await handleResponse(response);
+    const products = unwrap<Product[]>(data);
 
-        console.log("Products API response:", data);
-
-        if (data && data.response && Array.isArray(data.response)) {
-            return {
-                products: data.response,
-                count: data.count || data.response.length,
-            };
-        }
-
-        if (Array.isArray(data)) {
-            console.warn("Backend returned array instead of object with count");
-            return {
-                products: data,
-                count: data.length,
-            };
-        }
-
-        console.warn("Unexpected products response:", data);
-        return {
-            products: [],
-            count: 0,
-        };
-    } catch (error) {
-        console.error("Failed to load products:", error);
-        return {
-            products: [],
-            count: 0,
-        };
+    if (!Array.isArray(products)) {
+        return { products: [], count: 0 };
     }
+
+    return {
+        products,
+        count: (data as ApiEnvelope<Product[]>).count ?? products.length,
+    };
 };
 
 export const getProduct = async (productId: string): Promise<Product> => {
-    const response = await fetch(`${API_URL}/product/${productId}`);
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    const data = await request<ApiEnvelope<Product>>(`/product/${productId}`);
+    return unwrap<Product>(data);
 };
 
-// Basket
+// ---------------------------------------------------------------- Basket
+
 export const getMyBasket = async (): Promise<Basket> => {
-    const response = await fetch(`${API_URL}/basket/my`, {
-        method: "GET",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
+    const data = await request<ApiEnvelope<Basket>>("/basket/my", {
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<Basket>(data);
 };
 
 export const addToBasket = async (
     productId: string,
     quantity: number = 1
 ): Promise<Basket> => {
-    const response = await fetch(`${API_URL}/basket`, {
+    const data = await request<ApiEnvelope<Basket>>("/basket", {
         method: "POST",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify({ productId, quantity }),
+        body: { productId, quantity },
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<Basket>(data);
 };
 
 export const updateBasketItem = async (
     basketItemId: string,
     quantity: number
 ): Promise<Basket> => {
-    const response = await fetch(`${API_URL}/basket/${basketItemId}`, {
-        method: "PATCH",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify({ quantity }),
-    });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    const data = await request<ApiEnvelope<Basket>>(
+        `/basket/${basketItemId}`,
+        { method: "PATCH", body: { quantity }, auth: true }
+    );
+    return unwrap<Basket>(data);
 };
 
 export const removeBasketItem = async (
     basketItemId: string
 ): Promise<boolean> => {
-    const response = await fetch(`${API_URL}/basket/${basketItemId}`, {
+    await request(`/basket/${basketItemId}`, {
         method: "DELETE",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
+        auth: true,
     });
-    await handleResponse<any>(response);
     return true;
 };
 
 export const clearBasket = async (): Promise<boolean> => {
-    const response = await fetch(`${API_URL}/basket`, {
-        method: "DELETE",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
-    });
-    await handleResponse<any>(response);
+    await request("/basket", { method: "DELETE", auth: true });
     return true;
 };
 
-// Orders - UPDATED TO MATCH BACKEND
+// ---------------------------------------------------------------- Orders
+
 export const createOrder = async (
     shippingData: ShippingData
 ): Promise<Order> => {
-    const response = await fetch(`${API_URL}/orders`, {
+    const data = await request<ApiEnvelope<Order>>("/orders", {
         method: "POST",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify(shippingData),
+        body: shippingData,
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<Order>(data);
 };
 
 export const getMyOrders = async (): Promise<Order[]> => {
-    try {
-        const response = await fetch(`${API_URL}/orders/my`, {
-            method: "GET",
-            headers: getAuthHeadersWithoutContentType(),
-            credentials: "include",
-        });
-        const data: any = await handleResponse(response);
-        const orders = data.response || data;
-
-        if (Array.isArray(orders)) {
-            return orders;
-        }
-
-        return [];
-    } catch (error) {
-        console.error("Failed to load orders:", error);
-        return [];
-    }
+    const data = await request<ApiEnvelope<Order[]>>("/orders/my", {
+        auth: true,
+    });
+    const orders = unwrap<Order[]>(data);
+    return Array.isArray(orders) ? orders : [];
 };
 
 export const getOrder = async (orderId: string): Promise<Order> => {
-    const response = await fetch(`${API_URL}/orders/${orderId}`, {
-        method: "GET",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
+    const data = await request<ApiEnvelope<Order>>(`/orders/${orderId}`, {
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<Order>(data);
 };
 
 export const updateOrderStatus = async (
     orderId: string,
     status: "PROCESSING" | "COMPLETED" | "CANCELLED"
 ): Promise<Order> => {
-    const response = await fetch(`${API_URL}/orders/${orderId}`, {
+    const data = await request<ApiEnvelope<Order>>(`/orders/${orderId}`, {
         method: "PATCH",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify({ status }),
+        body: { status },
+        auth: true,
     });
-    const data: any = await handleResponse(response);
-    return data.response || data;
+    return unwrap<Order>(data);
 };
 
 export const cancelOrder = async (orderId: string): Promise<boolean> => {
-    const response = await fetch(`${API_URL}/orders/${orderId}`, {
-        method: "DELETE",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
-    });
-    await handleResponse<any>(response);
+    await request(`/orders/${orderId}`, { method: "DELETE", auth: true });
     return true;
 };
 
-// Reviews
+// --------------------------------------------------------------- Reviews
+
 export const createReview = async (
     productId: string,
     comment: string,
     rating: number
 ): Promise<boolean> => {
-    const response = await fetch(`${API_URL}/review`, {
+    await request("/review", {
         method: "POST",
-        headers: getAuthHeaders(),
-        credentials: "include",
-        body: JSON.stringify({ productId, comment, rating }),
+        body: { productId, comment, rating },
+        auth: true,
     });
-    await handleResponse<any>(response);
     return true;
 };
 
 export const deleteReview = async (reviewId: string): Promise<boolean> => {
-    const response = await fetch(`${API_URL}/review/${reviewId}`, {
-        method: "DELETE",
-        headers: getAuthHeadersWithoutContentType(),
-        credentials: "include",
-    });
-    await handleResponse<any>(response);
+    await request(`/review/${reviewId}`, { method: "DELETE", auth: true });
     return true;
 };
